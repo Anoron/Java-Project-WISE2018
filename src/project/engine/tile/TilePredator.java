@@ -1,15 +1,15 @@
 
 
-package Project.engine.tile;
+package project.engine.tile;
 
-import Project.engine.util.Point2;
-import Project.engine.IAnimal;
+import project.engine.util.Point2;
+import project.engine.IAnimal;
 
-public class Predator extends Tile implements IAnimal {
+public class TilePredator extends Tile implements IAnimal {
 
     private Point2 position;
 
-    public Predator(Point2 pos) {
+    public TilePredator(Point2 pos) {
         position = pos;
     }
 
