@@ -5,6 +5,19 @@ import javaproject.tiles.*;
 import java.util.ArrayList;
 import java.util.Collections;
 
+
+/**
+ * @author Philipp.
+ * @author Henry (Interface-interaction).
+ * <p>
+ * The Boardmanager is the HUB for all actions of our board, he calls the Methods of Predators and pray. He is the
+ * center of our statemaschine.
+ * @see EmptyTile .
+ * @see Animal .
+ * @see HuntingGroup .
+ * @see Predator .
+ * @see Prey .
+ */
 public class BoardManager {
 
     private static EmptyTile[][] board;
@@ -15,11 +28,17 @@ public class BoardManager {
     private int genPrey;
     private int genereteXSeconds;
     private int preyTimer;
-    private static int nutritionPerTick=0;
+    private static int nutritionPerTick = 0;
     private static int preyKilled;
     private static int predKilled;
-    private int iteration=0;
+    private int iteration = 0;
     private boolean generatePrey;
+
+
+    public void setGenPrey(int genPrey) {
+        this.genPrey = genPrey;
+    }
+
 
     public void setGeneratePrey(boolean generatePrey) {
         this.generatePrey = generatePrey;
@@ -45,8 +64,23 @@ public class BoardManager {
         return prey.size();
     }
 
-    public int getPredSize(){
-        return predators.size();
+    public BoardManager(int x, int y, int numPrey, int numPred, int genereatePrey, int genereteXSeconds, boolean genP) throws Exception {
+        if (numPred + numPrey > x * y) { //Throw Error if the number of Animals is bigger than the field
+            throw new Exception("Too Many Animals for the Field!");
+        }
+        board = new EmptyTile[x][y];
+        animals = new ArrayList<>();
+        predators = new ArrayList<>();
+        prey = new ArrayList<>();
+        nutritionPerTick = 0;
+        predKilled = 0;
+        preyKilled = 0;
+        this.generatePrey = genP;// sets the boolean if the programm should generate prey
+
+        initialize(numPrey, numPred); //initialize the field
+        this.genPrey = genereatePrey;
+        this.genereteXSeconds = genereteXSeconds;
+        groups = new ArrayList<>();
     }
 
 
@@ -64,28 +98,19 @@ public class BoardManager {
     public static EmptyTile bGetPos(Position pos) {
         return board[pos.getX()][pos.getY()];
     }
-   //
-   // public BoardManager(int x, int y, int numPrey, int numPred) throws Exception {
-   //     this(x, y, numPrey, numPred, 0, 0);
-   // }
 
-    public BoardManager(int x, int y, int numPrey, int numPred, int genereatePrey, int genereteXSeconds, boolean genP) throws Exception {
-        if (numPred + numPrey > x * y) { //Throw Error if the number of Animals is bigger than the field
-            throw new Exception("Too Many Animals for the Field!");
+    public static void buildGroup(Predator predator, Prey target) {
+        int grpRad = 5;
+        ArrayList<Predator> member = predator.inSight(false, grpRad);
+        member.add(predator);
+        HuntingGroup hg = new HuntingGroup(member, grpRad, target);
+        groups.add(hg);
+        for (int i = 0; i < member.size(); i++) {
+            member.get(i).joinGrp(hg);
         }
-        board = new EmptyTile[x][y];
-        animals = new ArrayList<>();
-        predators = new ArrayList<>();
-        prey = new ArrayList<>();
-        nutritionPerTick = 0;
-        predKilled = 0;
-        preyKilled = 0;
-        this.generatePrey=genP;// sets the boolean if the programm should generate prey
-
-        initialize(numPrey, numPred); //initialize the field
-        this.genPrey = genereatePrey;
-        this.genereteXSeconds = genereteXSeconds;
-        groups = new ArrayList<>();
+        predator.joinGrp(hg);
+        hg.updateGrpPos();
+        hg.update();
     }
 
 
@@ -138,16 +163,8 @@ public class BoardManager {
         }
     }
 
-
-    public static void buildGroup(Predator predator, Prey target) {
-        int grpRad = 5;
-        ArrayList<Predator> member = predator.inSight(false, grpRad);
-        HuntingGroup hg = new HuntingGroup(member, grpRad, target);
-        groups.add(hg);
-        for (int i = 0; i < member.size(); i++) {
-            member.get(i).setHuntingGroup(hg);
-        }
-        hg.update();
+    public int getPredSize() {
+        return predators.size();
     }
 
 
@@ -161,12 +178,12 @@ public class BoardManager {
     public void tick(int sleep) {
         int oneSecond = (genereteXSeconds * 1000) / sleep;
 
-        if(generatePrey==true){
-             if (genPrey > 0 && preyTimer >= oneSecond) {
-                 generatePrey(genPrey);
-                 Collections.sort(animals);
+        if (generatePrey == true) {
+            if (genPrey > 0 && preyTimer >= oneSecond) {
+                generatePrey(genPrey);
+                Collections.sort(animals);
                 preyTimer = 0;
-             }
+            }
         }
         preyTimer++;
         iteration++;
@@ -185,7 +202,11 @@ public class BoardManager {
                 if (pos.getX() < board.length && pos.getX() >= 0 && pos.getY() < board[0].length && pos.getY() >= 0) {
                     //TODO: @Philipp Group kills
                     if (bGetPos(pos) instanceof Prey && an instanceof Predator) {
-                        ((Predator) an).kill((Prey) bGetPos(pos));
+                        if (((Predator) an).getHuntingGroup() != null) {
+                            if (((Prey) bGetPos(pos)).getSize() > 1 && ((Predator) an).getHuntingGroup().getSize() > ((Prey) bGetPos(pos)).getSize()) {
+                                ((Predator) an).kill((Prey) bGetPos(pos));
+                            } else ((Prey) bGetPos(pos)).attack((Predator) an);
+                        }
                     }
                     if (bGetPos(pos) instanceof Predator && an instanceof Prey) {
                         ((Prey) an).attack((Predator) bGetPos(pos));
